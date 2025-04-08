@@ -1,0 +1,454 @@
+-- Dịch vụ
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
+
+-- Config
+local Config = {
+    -- Combat & Combo
+    TweenSpeed = 300,
+    OffsetY = 5,
+    ComboDelay = 0.2,
+    LowHealthThreshold = 10,
+    RegenHealthThreshold = 30,
+    
+    -- Target & Tracking
+    DamageTimeout = 30,
+    KillTimeout = 45,
+    AFKWeaponSwitchDelay = 5,
+    HopOnDeath = true,
+    
+    -- Di chuyển & Support
+    FlySpeed = 50,
+    AvoidanceDistance = 20,
+    SeaBeastBounty = 10000000,
+    TeamChoice = "Pirate",
+    
+    -- HUD & UI
+    UIId = "rbxassetid://14190262721",
+    UIName = "Anura Hub",
+    
+    -- Anti
+    StuckThreshold = 2,
+    AntiLagInterval = 1
+}
+
+-- Biến toàn cục
+local currentTarget = nil
+local lastDamageTime = tick()
+local lastKillAttemptTime = tick()
+local totalBounty = 0
+local scriptStartTime = tick()
+local uiVisible = true
+local isFlying = false
+
+-- Combat & Combo
+local function TeleportToTarget(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPos = target.Character.HumanoidRootPart.Position + Vector3.new(0, Config.OffsetY, 0)
+        local tweenInfo = TweenInfo.new(
+            (HumanoidRootPart.Position - targetPos).Magnitude / Config.TweenSpeed,
+            Enum.EasingStyle.Linear
+        )
+        local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPos)})
+        tween:Play()
+        tween.Completed:Wait()
+    end
+end
+
+local function EnableBuffs()
+    if not LocalPlayer.Character:FindFirstChild("Aura") then
+        game:GetService("ReplicatedStorage").Remotes.Ability:FireServer("Aura", true)
+    end
+    if not LocalPlayer.Character:FindFirstChild("Instinct") then
+        game:GetService("ReplicatedStorage").Remotes.Ability:FireServer("Instinct", true)
+    end
+    if not LocalPlayer.PlayerGui:FindFirstChild("PvP") then
+        game:GetService("ReplicatedStorage").Remotes.PvP:FireServer(true)
+    end
+end
+
+local function SwitchWeapon(weaponType)
+    local tools = {"Melee", "Sword", "Fruit", "Gun"}
+    for _, tool in pairs(tools) do
+        if tool == weaponType then
+            game:GetService("ReplicatedStorage").Remotes.Equip:FireServer(tool)
+            wait(0.1)
+        end
+    end
+end
+
+local function PerformCombo()
+    local comboOrder = {
+        {"Melee", "C"}, {"Melee", "X"}, {"Fruit", "Z"}, {"Fruit", "X"},
+        {"Melee", "Z"}, {"Sword", "Z"}, {"Gun", "X"}, {"Fruit", "C"},
+        {"Sword", "X"}, {"Gun", "Z"}, {"Fruit", "V"}, {"Fruit", "F"}
+    }
+    for _, skill in pairs(comboOrder) do
+        SwitchWeapon(skill[1])
+        game:GetService("ReplicatedStorage").Remotes.Skill:FireServer(skill[2])
+        wait(Config.ComboDelay)
+    end
+end
+
+local function AutoAttack()
+    SwitchWeapon("Melee")
+    game:GetService("ReplicatedStorage").Remotes.Attack:FireServer()
+    wait(0.1)
+end
+
+-- Target & Tracking
+local function IsValidTarget(player)
+    if player == LocalPlayer then return false end
+    local targetChar = player.Character
+    if not targetChar or not targetChar:FindFirstChild("Humanoid") or not targetChar:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    local targetHum = targetChar.Humanoid
+    local inSafeZone = targetChar:FindFirstChild("SafeZone")
+    local hasPvP = player.PlayerGui:FindFirstChild("PvP")
+    return targetHum.Health > 0 and hasPvP and not inSafeZone
+end
+
+local function GetNearestValidTarget()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if IsValidTarget(player) then
+            local targetHRP = player.Character.HumanoidRootPart
+            local distance = (HumanoidRootPart.Position - targetHRP.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local function UpdateTarget()
+    if not currentTarget or not IsValidTarget(currentTarget) then
+        currentTarget = GetNearestValidTarget()
+        lastDamageTime = tick()
+        lastKillAttemptTime = tick()
+    elseif tick() - lastDamageTime >= Config.DamageTimeout then
+        currentTarget = GetNearestValidTarget()
+        lastDamageTime = tick()
+    elseif tick() - lastKillAttemptTime >= Config.KillTimeout then
+        currentTarget = GetNearestValidTarget()
+        lastKillAttemptTime = tick()
+    end
+    return currentTarget
+end
+
+local function CheckAndEnablePvP()
+    if not LocalPlayer.PlayerGui:FindFirstChild("PvP") then
+        game:GetService("ReplicatedStorage").Remotes.PvP:FireServer(true)
+    end
+end
+
+local function AFKMode()
+    local tools = {"Melee", "Sword", "Fruit", "Gun"}
+    while wait(Config.AFKWeaponSwitchDelay) do
+        for _, tool in pairs(tools) do
+            game:GetService("ReplicatedStorage").Remotes.Equip:FireServer(tool)
+            wait(0.1)
+        end
+    end
+end
+
+-- Di chuyển & Support
+local function ToggleFly()
+    isFlying = not isFlying
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Parent = HumanoidRootPart
+    while isFlying and wait() do
+        if Humanoid.MoveDirection.Magnitude > 0 then
+            HumanoidRootPart.Velocity = Humanoid.MoveDirection * Config.FlySpeed
+        else
+            HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+        end
+    end
+    bodyVelocity:Destroy()
+end
+
+local function EnableWaterLavaWalk()
+    local bodyPosition = Instance.new("BodyPosition")
+    bodyPosition.Position = HumanoidRootPart.Position
+    bodyPosition.MaxForce = Vector3.new(0, math.huge, 0)
+    bodyPosition.Parent = HumanoidRootPart
+    RunService.RenderStepped:Connect(function()
+        local ray = Ray.new(HumanoidRootPart.Position, Vector3.new(0, -10, 0))
+        local hit, pos = Workspace:FindPartOnRay(ray, Character)
+        if hit and (hit.Name == "Water" or hit.Name == "Lava") then
+            bodyPosition.Position = Vector3.new(HumanoidRootPart.Position.X, pos.Y + 3, HumanoidRootPart.Position.Z)
+        end
+    end)
+end
+
+local function AvoidSkill(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPos = target.Character.HumanoidRootPart.Position
+        local direction = (HumanoidRootPart.Position - targetPos).Unit
+        local avoidPos = HumanoidRootPart.Position + direction * Config.AvoidanceDistance
+        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(avoidPos)})
+        tween:Play()
+        tween.Completed:Wait()
+    end
+end
+
+local function HandleLowHealth()
+    if Humanoid.Health / Humanoid.MaxHealth * 100 <= Config.LowHealthThreshold then
+        if not isFlying then ToggleFly() end
+        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame + Vector3.new(0, 100, 0)
+        repeat wait(1) until Humanoid.Health / Humanoid.MaxHealth * 100 >= Config.RegenHealthThreshold
+        ToggleFly()
+    end
+end
+
+local function SetTeam()
+    local team = Config.TeamChoice
+    if team == "Pirate" or team == "Marine" then
+        game:GetService("ReplicatedStorage").Remotes.SetTeam:FireServer(team)
+    end
+end
+
+local function SummonSeaBeast()
+    local bounty = LocalPlayer.Data.Bounty.Value or 0
+    if bounty >= Config.SeaBeastBounty then
+        game:GetService("ReplicatedStorage").Remotes.SummonSeaBeast:FireServer()
+    end
+end
+
+-- HUD & UI
+local function CreateUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = Config.UIName
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 300, 0, 200)
+    Frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    Frame.BackgroundTransparency = 0.2
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.Parent = ScreenGui
+    
+    local BackgroundImage = Instance.new("ImageLabel")
+    BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
+    BackgroundImage.Image = Config.UIId
+    BackgroundImage.BackgroundTransparency = 1
+    BackgroundImage.Parent = Frame
+    
+    local TargetLabel = Instance.new("TextLabel")
+    TargetLabel.Size = UDim2.new(1, 0, 0, 20)
+    TargetLabel.Position = UDim2.new(0, 0, 0, 10)
+    TargetLabel.Text = "Target: N/A"
+    TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TargetLabel.BackgroundTransparency = 1
+    TargetLabel.Parent = Frame
+    
+    local BountyLabel = Instance.new("TextLabel")
+    BountyLabel.Size = UDim2.new(1, 0, 0, 20)
+    BountyLabel.Position = UDim2.new(0, 0, 0, 40)
+    BountyLabel.Text = "Total Bounty: 0"
+    BountyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    BountyLabel.BackgroundTransparency = 1
+    BountyLabel.Parent = Frame
+    
+    local FPSLabel = Instance.new("TextLabel")
+    FPSLabel.Size = UDim2.new(1, 0, 0, 20)
+    FPSLabel.Position = UDim2.new(0, 0, 0, 70)
+    FPSLabel.Text = "FPS: 0"
+    FPSLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FPSLabel.BackgroundTransparency = 1
+    FPSLabel.Parent = Frame
+    
+    local TimeLabel = Instance.new("TextLabel")
+    TimeLabel.Size = UDim2.new(1, 0, 0, 20)
+    TimeLabel.Position = UDim2.new(0, 0, 0, 100)
+    TimeLabel.Text = "Time Used: 0s"
+    TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TimeLabel.BackgroundTransparency = 1
+    TimeLabel.Parent = Frame
+    
+    local PlayersLabel = Instance.new("TextLabel")
+    PlayersLabel.Size = UDim2.new(1, 0, 0, 20)
+    PlayersLabel.Position = UDim2.new(0, 0, 0, 130)
+    PlayersLabel.Text = "Players in Server: 0"
+    PlayersLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PlayersLabel.BackgroundTransparency = 1
+    PlayersLabel.Parent = Frame
+    
+    local NextButton = Instance.new("TextButton")
+    NextButton.Size = UDim2.new(0, 100, 0, 30)
+    NextButton.Position = UDim2.new(0.5, -50, 1, -40)
+    NextButton.Text = "Next Player"
+    NextButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    NextButton.Parent = Frame
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+    ToggleButton.Position = UDim2.new(1, 10, 0, 0)
+    ToggleButton.Text = "X"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    ToggleButton.Parent = Frame
+    
+    NextButton.MouseButton1Click:Connect(function()
+        currentTarget = GetNearestValidTarget()
+    end)
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        uiVisible = not uiVisible
+        Frame.Visible = uiVisible
+    end)
+    
+    return TargetLabel, BountyLabel, FPSLabel, TimeLabel, PlayersLabel
+end
+
+local function UpdateUI(targetLabel, bountyLabel, fpsLabel, timeLabel, playersLabel)
+    RunService.RenderStepped:Connect(function()
+        targetLabel.Text = "Target: " .. (currentTarget and currentTarget.Name or "N/A")
+        bountyLabel.Text = "Total Bounty: " .. totalBounty
+        local fps = math.floor(1 / RunService.RenderStepped:Wait())
+        fpsLabel.Text = "FPS: " .. fps
+        local timeUsed = math.floor(tick() - scriptStartTime)
+        timeLabel.Text = "Time Used: " .. timeUsed .. "s"
+        playersLabel.Text = "Players in Server: " .. #Players:GetPlayers()
+    end)
+end
+
+local function TrackBounty()
+    Players.PlayerRemoving:Connect(function(player)
+        if player == currentTarget then
+            totalBounty = totalBounty + (player.Data.Bounty.Value or 0)
+            currentTarget = GetNearestValidTarget()
+        end
+    end)
+end
+
+-- Anti
+local function AntiLag()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and (obj.Name:match("Tree") or obj.Name:match("Cloud")) then
+            obj:Destroy()
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+            obj.Enabled = false
+        end
+    end
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    game.Lighting.FogEnd = 100000
+    game.Lighting.GlobalShadows = false
+    local colorCorrection = Instance.new("ColorCorrectionEffect")
+    colorCorrection.Saturation = -1
+    colorCorrection.Parent = game.Lighting
+end
+
+local function AntiBan()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" or method == "Ban" then
+            return
+        end
+        return oldNamecall(self, ...)
+    end)
+end
+
+local function AntiDeath()
+    EnableWaterLavaWalk()
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if obj:IsA("Part") and obj.Name:match("Skill") then
+            local distance = (HumanoidRootPart.Position - obj.Position).Magnitude
+            if distance < 20 then
+                local avoidPos = HumanoidRootPart.Position + (HumanoidRootPart.Position - obj.Position).Unit * 30
+                HumanoidRootPart.CFrame = CFrame.new(avoidPos)
+            end
+        end
+    end
+end
+
+local function FixStuck()
+    local lastPosition = HumanoidRootPart.Position
+    local stuckTime = 0
+    RunService.Heartbeat:Connect(function(deltaTime)
+        local currentPosition = HumanoidRootPart.Position
+        if (currentPosition - lastPosition).Magnitude < 1 then
+            stuckTime = stuckTime + deltaTime
+            if stuckTime >= Config.StuckThreshold then
+                HumanoidRootPart.CFrame = CFrame.new(currentPosition + Vector3.new(0, 10, 0))
+                stuckTime = 0
+            end
+        else
+            stuckTime = 0
+        end
+        lastPosition = currentPosition
+    end)
+end
+
+-- Main Loop
+local function Main()
+    -- Khởi động các module
+    spawn(AFKMode)
+    spawn(function()
+        AntiLag()
+        AntiBan()
+        AntiDeath()
+        FixStuck()
+        while wait(Config.AntiLagInterval) do
+            AntiLag()
+        end
+    end)
+    spawn(function()
+        EnableWaterLavaWalk()
+        SetTeam()
+        while wait(0.1) do
+            HandleLowHealth()
+            if currentTarget and currentTarget.Character and currentTarget.Character.Humanoid.WalkSpeed > 100 then
+                AvoidSkill(currentTarget)
+            end
+            SummonSeaBeast()
+        end
+    end)
+    local targetLabel, bountyLabel, fpsLabel, timeLabel, playersLabel = CreateUI()
+    UpdateUI(targetLabel, bountyLabel, fpsLabel, timeLabel, playersLabel)
+    TrackBounty()
+    
+    -- Vòng lặp chính
+    while wait(0.1) do
+        CheckAndEnablePvP()
+        local target = UpdateTarget()
+        if target then
+            EnableBuffs()
+            TeleportToTarget(target)
+            PerformCombo()
+            if not target.Character or target.Character.Humanoid.Health <= 0 then
+                AutoAttack()
+            end
+            if target.Character.Humanoid.Health < target.Character.Humanoid.MaxHealth then
+                lastDamageTime = tick()
+            end
+        end
+        LocalPlayer.CharacterAdded:Connect(function()
+            CheckAndEnablePvP()
+            currentTarget = GetNearestValidTarget()
+            if Config.HopOnDeath then
+                game:GetService("TeleportService"):Teleport(game.PlaceId)
+            end
+        end)
+        if #Players:GetPlayers() <= 1 then
+            game:GetService("TeleportService"):Teleport(game.PlaceId)
+        end
+    end
+end
+
+-- Chạy script
+Main()
