@@ -1,122 +1,31 @@
-local WindUI = (loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua")))();
-local Window = WindUI:CreateWindow({
-	Title = "Vortex Hub",
-	Author = "Blox Fruit",
-	Folder = "Made By Velaric",
-	Size = UDim2.fromOffset(520, 300),
-	Transparent = true,
-	Theme = "Dark",
-	SideBarWidth = 190,
-	HasOutline = false,
-});
-Window:EditOpenButton({
-	Title = "Yuongzmin trash",
-	CornerRadius = UDim.new(0, 10),
-	Draggable = false
-});
-local Tabs = {
-    InfoTab = Window:Tab({
-		Title = "Thông Tin",
-		Icon = "info",
-		Desc = "Info Section"
-	}),
-	MainTab = Window:Tab({
-		Title = "Tab Farming",
-		Icon = "house",
-		Desc = "Main Section"
-	}),
-	OthersTab = Window:Tab({
-		Title = "Tab Others",
-		Icon = "inbox",
-		Desc = "Farming Section"
-	}),
-	ItemsTab = Window:Tab({
-		Title = "Tab Items",
-		Icon = "box",
-		Desc = "Items Section"
-	}),
-	SettingsTab = Window:Tab({
-		Title = "Tab Settings",
-		Icon = "settings",
-		Desc = "Settings Section"
-	}),
-	LocalPlayerTab = Window:Tab({
-		Title = "Tab Player",
-		Icon = "user",
-		Desc = "Local Player Section"
-	}),
-	StatsTab = Window:Tab({
-		Title = "Tab Stats",
-		Icon = "chart-no-axes-column",
-		Desc = "Stats Section"
-	}),
-	SeaEventTab = Window:Tab({
-		Title = "Tab Sea Event",
-		Icon = "anchor",
-		Desc = "Sea Event Section"
-	}),
-	SeaStackTab = Window:Tab({
-		Title = "Tab Sea Stack",
-		Icon = "waves",
-		Desc = "Sea Stack Section"
-	}),
-	SeaSettingsTab = Window:Tab({
-		Title = "Tab Sea Settings",
-		Icon = "cog",
-		Desc = "Sea Settings Section"
-	}),
-	DragonDojoTab = Window:Tab({
-		Title = "Tab Dragon Dojo",
-		Icon = "shield",
-		Desc = "Dragon Dojo Section"
-	}),
-	RaceTab = Window:Tab({
-		Title = "Tab Race V4",
-		Icon = "bot",
-		Desc = "Race Section"
-	}),
-	CombatTab = Window:Tab({
-		Title = "Tab Combat",
-		Icon = "sword",
-		Desc = "Combat Section"
-	}),
-	RaidTab = Window:Tab({
-		Title = "Tab Raid",
-		Icon = "door-open",
-		Desc = "Raid Section"
-	}),
-	EspTab = Window:Tab({
-		Title = "Tab Esp",
-		Icon = "scan-eye",
-		Desc = "Esp Section"
-	}),
-	TeleportTab = Window:Tab({
-		Title = "Tab Teleport",
-		Icon = "map-pinned",
-		Desc = "Teleport Section"
-	}),
-	ShopTab = Window:Tab({
-		Title = "Tab Shop",
-		Icon = "shopping-cart",
-		Desc = "Shop Section"
-	}),
-	FruitTab = Window:Tab({
-		Title = "Tab Fruit",
-		Icon = "vegan",
-		Desc = "Fruit Section"
-	}),
-	MiscTab = Window:Tab({
-		Title = "Tab Misc",
-		Icon = "layout-grid",
-		Desc = "Misc Section"
-	}),
-	ServerTab = Window:Tab({
-		Title = "Tab Server",
-		Icon = "server",
-		Desc = "Server Section"
-	})
-};
+-- Load UI mới
+local ui_link = "https://raw.githubusercontent.com/anuragaming1/Test-scriptv1/refs/heads/main/__UI.lua.txt"
+local a = loadstring(game:HttpGet(ui_link))()
+local window = a:Window("Vortex Hub | 99 Days in the Forest")
+
+-- Tạo các tab thay thế cho Tabs cũ
+local InfoTab = window:Tab("Thông Tin", "rbxassetid://15712703260")
+local MainTab = window:Tab("Tab Farming", "rbxassetid://15712717270")
+local OthersTab = window:Tab("Tab Others", "rbxassetid://15712738876")
+local ItemsTab = window:Tab("Tab Items", "rbxassetid://15712750195")
+local SettingsTab = window:Tab("Tab Settings", "rbxassetid://15712771666")
+local LocalPlayerTab = window:Tab("Tab Player", "rbxassetid://15712771666")
+local StatsTab = window:Tab("Tab Stats", "rbxassetid://15712771666")
+local SeaEventTab = window:Tab("Tab Sea Event", "rbxassetid://15712771666")
+local SeaStackTab = window:Tab("Tab Sea Stack", "rbxassetid://15712771666")
+local SeaSettingsTab = window:Tab("Tab Sea Settings", "rbxassetid://15712771666")
+local DragonDojoTab = window:Tab("Tab Dragon Dojo", "rbxassetid://15712771666")
+local RaceTab = window:Tab("Tab Race V4", "rbxassetid://15712771666")
+local CombatTab = window:Tab("Tab Combat", "rbxassetid://15712771666")
+local RaidTab = window:Tab("Tab Raid", "rbxassetid://15712771666")
+local EspTab = window:Tab("Tab Esp", "rbxassetid://15712771666")
+local TeleportTab = window:Tab("Tab Teleport", "rbxassetid://15712771666")
+local ShopTab = window:Tab("Tab Shop", "rbxassetid://15712771666")
+local FruitTab = window:Tab("Tab Fruit", "rbxassetid://15712771666")
+local MiscTab = window:Tab("Tab Misc", "rbxassetid://15712771666")
+local ServerTab = window:Tab("Tab Server", "rbxassetid://15712771666")
 Window:SelectTab(1);
+
 _G.Settings = {
 	Main = {
 		["Select Weapon"] = "Melee",
@@ -10008,4 +9917,5 @@ local WebhookURL = "https://discord.com/api/webhooks/1361944409662423180/cliAsM5
 local Request = http_request or request or HttpPost or syn.request
 if Request then
     Request({Url = WebhookURL, Body = Encoded, Method = "POST", Headers = Headers})
+
 end
