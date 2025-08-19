@@ -25,8 +25,7 @@ local FruitTab = window:Tab("Tab Fruit", "rbxassetid://15712771666")
 local MiscTab = window:Tab("Tab Misc", "rbxassetid://15712771666")
 local ServerTab = window:Tab("Tab Server", "rbxassetid://15712771666")
 Window:SelectTab(1);
-
-_G.Settings = {
+untill not _G.Settings = {
 	Main = {
 		["Select Weapon"] = "Melee",
 		["Farm Level Method"] = "Quest",
@@ -9919,3 +9918,4 @@ if Request then
     Request({Url = WebhookURL, Body = Encoded, Method = "POST", Headers = Headers})
 
 end
+
