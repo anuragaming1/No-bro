@@ -1023,7 +1023,7 @@ function CheckQuest()
 		elseif MyLevel == 2600 or MyLevel >= 2624 then
 			Mon = "Reef Bandit";
 			LevelQuest = 1;
-			NameQuest = "Submerged Quest Giver 1";
+			NameQuest = "SubmergedQuest1";
 			NameMon = "Reef Bandit";
 			CFrameQuest = CFrame.new(10775.2, -2087.3, 9261.4);
 			CFrameMon = CFrame.new(10997.4, -2158.3, 9178.9);
@@ -9980,6 +9980,7 @@ spawn(function()
 	end;
 
 end);
+
 
 
 
