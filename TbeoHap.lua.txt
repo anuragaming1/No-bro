@@ -1013,7 +1013,7 @@ function CheckQuest()
 			NameMon = "Serpent Hunter";
 			CFrameQuest = CFrame.new(-16661.890625, 105.2862319946289, 1576.69775390625);
 			CFrameMon = CFrame.new(-16587.896484375, 154.21299743652344, 1533.40966796875);
-		elseif MyLevel == 2575 or MyLevel >= 2575 then
+		elseif MyLevel == 2575 or MyLevel >= 2599 then
 			Mon = "Skull Slayer";
 			LevelQuest = 2;
 			NameQuest = "TikiQuest3";
@@ -9980,3 +9980,4 @@ spawn(function()
 	end;
 
 end);
+
