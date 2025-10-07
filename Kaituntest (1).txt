@@ -13,10 +13,11 @@ update_status("wait please...")
 repeat task.wait() until game:IsLoaded()
 update_status(" Farming ...")
 
--- BẮT ĐẦU FARM (DÁN CODE FALocalPlayer.Backpack:FindFirstChild("Electro") or game:GetService("Players").LocalPlayer.Character:FindFirstChild("Electro") or game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Electric Claw") or game:GetService("Players").LocalPlayer.Character:FindFirstChild("Electric Claw") then
+-- BẮT ĐẦU FARM (DÁN CODE FARM CỦA BẠN Ở ĐÂY)
+LocalPlayer.Backpack:FindFirstChild("Electro") or game:GetService("Players").LocalPlayer.Character:FindFirstChild("Electro") or game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Electric Claw") or game:GetService("Players").LocalPlayer.Character:FindFirstChild("Electric Claw") then
                     if game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Electro") and game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Electro").Level.Value >= 400 then
                         game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("BuyElectricClaw")
-                        _G.SelectWeapon = "Electric Claw"RM CỦA BẠN Ở ĐÂY)
+                        _G.SelectWeapon = "Electric Claw"
 update_status("Đang farm...")
 
 spawn(function()
